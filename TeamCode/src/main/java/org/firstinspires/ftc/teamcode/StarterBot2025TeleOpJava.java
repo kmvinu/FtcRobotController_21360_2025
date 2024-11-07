@@ -209,6 +209,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                 intake.setPower(0);
             }
             if gamepad1.left_bumper{
+                slowMode = true;
                 wrist.setPower(0.5);
                 arm.setPower(0.5);
             }
