@@ -60,7 +60,11 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
     private boolean lastBump = false;
     private boolean lastHook = false;
     private boolean lastGrab = false;
-    
+
+    // Slow mode
+
+    private boolean slowMode = false;
+
     //target position
     private int targetArm = 0;
     private int targetWrist = 0;
@@ -204,6 +208,11 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             } else {
                 intake.setPower(0);
             }
+            if gamepad1.left_bumper{
+                slowMode = true;
+                wrist.setPower(0.5);
+                arm.setPower(0.5);
+            }
             
             //DRIVE Split Arcade
             double drive = -gamepad1.left_stick_y;
@@ -227,6 +236,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             telemetry.addData("Arm Power", arm.getPower());
             telemetry.addData("Wrist Position", wrist.getCurrentPosition());
             telemetry.addData("Wrist Power", wrist.getPower());
+            telemetry.addData("Slow Mode", slowMode ? "On" : "Off");
             telemetry.update();
         }
     }
