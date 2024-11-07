@@ -84,6 +84,7 @@ public void runOpMode() {
             } else {
                 intake.setPower(0);
             }
+            else if
 
             telemetry.addData("Servo Position", claw.getPosition());
             telemetry.addData("Wrist Position", wrist.getCurrentPosition());
