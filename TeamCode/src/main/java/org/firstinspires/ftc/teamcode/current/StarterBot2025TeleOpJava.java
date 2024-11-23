@@ -21,18 +21,21 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
 
 
     // Arm and Wrist target positions for each state
-    private static final int ARM_POSITION_INIT = 300;
-    private static final int ARM_POSITION_INTAKE = 450;
-    private static final int ARM_POSITION_WALL_GRAB = 1100;
-    private static final int ARM_POSITION_WALL_UNHOOK = 1700;
-    private static final int ARM_POSITION_HOVER_HIGH = 2600;
-    private static final int ARM_POSITION_CLIP_HIGH = 2100;
-    private static final int ARM_POSITION_LOW_BASKET = 2500;
+    private static final int ARM_POSITION_INIT = 180;//300;
+    private static final int ARM_POSITION_INTAKE = 242;//450;
+    private static final int ARM_POSITION_WALL_GRAB = 1100;//1100;
+    private static final int ARM_POSITION_WALL_UNHOOK = 1700;//1700;
+    private static final int ARM_POSITION_HOVER_HIGH = 2600;//2600;
+    private static final int ARM_POSITION_CLIP_HIGH = 2100;//2100;
+    private static final int ARM_POSITION_LOW_BASKET = 2271;//2500;
+    private static final int ARM_POSITION_HIGH_BASKET = 2500;
 
     
     private static final int WRIST_POSITION_INIT = 0;
-    private static final int WRIST_POSITION_SAMPLE = 270;
-    private static final int WRIST_POSITION_SPEC = 10;
+    private static final int WRIST_POSITION_SAMPLE = 186;
+    private static final int WRIST_POSITION_SPEC = 30;
+    private static final int WRIST_POSITION_LOW_BSKT = 285;
+    private static final int WRIST_POSITION_HIGH_BSKT = 285;
 
 
     
@@ -49,6 +52,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
         HOVER_HIGH,
         CLIP_HIGH,
         LOW_BASKET,
+        HIGH_BASKET,
         MANUAL
     }
 
@@ -109,6 +113,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                     break;
                 case INTAKE:
                     targetArm = ARM_POSITION_INTAKE;
+                    //targetWrist = WRIST_POSITION_INIT;
                     targetWrist = WRIST_POSITION_SAMPLE;
                     telemetry.addData("State", "INTAKE");
                     break;
@@ -138,8 +143,13 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                     break;
                 case LOW_BASKET:
                     targetArm = ARM_POSITION_LOW_BASKET;
-                    targetWrist = WRIST_POSITION_SAMPLE;
+                    targetWrist = WRIST_POSITION_LOW_BSKT;
                     telemetry.addData("State", "LOW_BASKET");
+                    break;
+                case HIGH_BASKET:
+                    targetArm = ARM_POSITION_HIGH_BASKET;
+                    targetWrist = WRIST_POSITION_HIGH_BSKT;
+                    telemetry.addData("State", "HIGH_BASKET");
                     break;
                 case MANUAL:
                     telemetry.addData("State", "MANUAL");
@@ -176,10 +186,10 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                 targetArm -= 10;
             } else if (gamepad1.dpad_left){
                 currentState = RobotState.MANUAL;
-                targetWrist += 1;
+                targetWrist += 5;
             } else if (gamepad1.dpad_right){
                 currentState = RobotState.MANUAL;
-                targetWrist -= 1;
+                targetWrist -= 5;
             }
             
             lastGrab = gamepad1.b;
@@ -216,10 +226,12 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             
             arm.setTargetPosition(targetArm);
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            arm.setPower(0.5);
+            sleep(10);
             wrist.setTargetPosition(targetWrist);
             wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            arm.setPower(1);
-            wrist.setPower(1);
+            wrist.setPower(0.5);
+            sleep(10);
 
             // Send telemetry data to the driver station
             telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
