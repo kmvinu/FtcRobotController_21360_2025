@@ -12,12 +12,14 @@ import com.qualcomm.robotcore.util.Range;
 public class StarterBot2025TeleOpJava extends LinearOpMode {
 
     // Declare OpMode members.
-    private DcMotor leftDrive = null;
-    private DcMotor rightDrive = null;
     private DcMotor arm = null;
     private DcMotor wrist = null;
     private Servo claw = null;
     private CRServo intake = null;
+    private DcMotor leftFrontDrive   = null;  //  Used to control the left front drive wheel
+    private DcMotor rightFrontDrive  = null;  //  Used to control the right front drive wheel
+    private DcMotor leftBackDrive    = null;  //  Used to control the left back drive wheel
+    private DcMotor rightBackDrive   = null;  //  Used to control the right back drive wheel
 
 
     // Arm and Wrist target positions for each state
@@ -30,7 +32,6 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
     private static final int ARM_POSITION_LOW_BASKET = 2271;//2500;
     private static final int ARM_POSITION_HIGH_BASKET = 2500;
 
-    
     private static final int WRIST_POSITION_INIT = 0;
     private static final int WRIST_POSITION_SAMPLE = 186;
     private static final int WRIST_POSITION_SPEC = 30;
@@ -71,32 +72,38 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
 
     @Override
     public void runOpMode() {
+
+        double  drive           = 0;        // Desired forward power/speed (-1 to +1)
+        double  strafe          = 0;        // Desired strafe power/speed (-1 to +1)
+        double  turn            = 0;        // Desired turning power/speed (-1 to +1)
+
         // Initialize the hardware variables.
-        leftDrive  = hardwareMap.get(DcMotor.class, "leftDrive");
-        rightDrive = hardwareMap.get(DcMotor.class, "rightDrive");
+        leftFrontDrive  = hardwareMap.get(DcMotor.class, "TopLeft");
+        rightFrontDrive = hardwareMap.get(DcMotor.class, "TopRight");
+        leftBackDrive  = hardwareMap.get(DcMotor.class, "BottomLeft");
+        rightBackDrive = hardwareMap.get(DcMotor.class, "BottomRight");
+
+
         arm = hardwareMap.get(DcMotor.class, "arm");
         wrist = hardwareMap.get(DcMotor.class, "wrist");
         claw = hardwareMap.get(Servo.class, "claw");
         intake = hardwareMap.get(CRServo.class, "intake");
 
-        // Stop and reset encoders
-        leftDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wrist.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-
-        // Set motors to use encoders
-        leftDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
-        rightDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         
-        // Set motor direction
-        leftDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        // Set drive motor direction
+        // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
+        // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
+        // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
+        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
+        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
+        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
+
         //Set zero power behavior
         wrist.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         arm.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         // Wait for the game to start (driver presses PLAY)
         waitForStart();
@@ -155,9 +162,6 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                     telemetry.addData("State", "MANUAL");
                     break;
             }
-            
-            
-            
 
             // Handle state transitions based on gamepad input
             if (gamepad1.a) {
@@ -216,13 +220,11 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             }
             
             //DRIVE Split Arcade
-            double drive = -gamepad1.left_stick_y;
-            double turn  =  -gamepad1.right_stick_x;
-            double leftPower    = Range.clip(drive + turn, -1.0, 1.0) ;
-            double rightPower   = Range.clip(drive - turn, -1.0, 1.0) ;
-    
-            leftDrive.setPower(leftPower);
-            rightDrive.setPower(rightPower);
+            // drive using manual POV Joystick mode.  Slow things down to make the robot more controlable.
+            drive  = -gamepad1.left_stick_y  / 2.0;  // Reduce drive rate to 50%.
+            strafe = -gamepad1.left_stick_x  / 2.0;  // Reduce strafe rate to 50%.
+            turn   = -gamepad1.right_stick_x / 3.0;  // Reduce turn rate to 33%.
+            telemetry.addData("Manual Drive","Drive %5.2f, Strafe %5.2f, Turn %5.2f ", drive, strafe, turn);
             
             arm.setTargetPosition(targetArm);
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -240,7 +242,36 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             telemetry.addData("Wrist Position", wrist.getCurrentPosition());
             telemetry.addData("Wrist Power", wrist.getPower());
             telemetry.update();
+
+            // Apply desired axes motions to the drivetrain.
+            moveRobot(drive, strafe, turn);
+            sleep(10);
         }
+    }
+    public void moveRobot(double x, double y, double yaw) {
+        // Calculate wheel powers.
+        double leftFrontPower    =  x -y -yaw;
+        double rightFrontPower   =  x +y +yaw;
+        double leftBackPower     =  x +y -yaw;
+        double rightBackPower    =  x -y +yaw;
+
+        // Normalize wheel powers to be less than 1.0
+        double max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
+        max = Math.max(max, Math.abs(leftBackPower));
+        max = Math.max(max, Math.abs(rightBackPower));
+
+        if (max > 1.0) {
+            leftFrontPower /= max;
+            rightFrontPower /= max;
+            leftBackPower /= max;
+            rightBackPower /= max;
+        }
+
+        // Send powers to the wheels.
+        leftFrontDrive.setPower(leftFrontPower);
+        rightFrontDrive.setPower(rightFrontPower);
+        leftBackDrive.setPower(leftBackPower);
+        rightBackDrive.setPower(rightBackPower);
     }
 }
 //SCAMMER DO NOT REDEEM THE CODE
