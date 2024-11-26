@@ -8,18 +8,26 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.ExposureControl;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.controls.GainControl;
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.util.concurrent.TimeUnit;
+
 @com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="StarterBot_V1_Java", group="Linear Opmode")
 public class StarterBot2025TeleOpJava extends LinearOpMode {
+
+    OmniDrive driveObject = new OmniDrive();
 
     // Declare OpMode members.
     private DcMotor arm = null;
     private DcMotor wrist = null;
     private Servo claw = null;
     private CRServo intake = null;
-    private DcMotor leftFrontDrive   = null;  //  Used to control the left front drive wheel
-    private DcMotor rightFrontDrive  = null;  //  Used to control the right front drive wheel
-    private DcMotor leftBackDrive    = null;  //  Used to control the left back drive wheel
-    private DcMotor rightBackDrive   = null;  //  Used to control the right back drive wheel
 
 
     // Arm and Wrist target positions for each state
@@ -70,20 +78,16 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
     private int targetArm = 0;
     private int targetWrist = 0;
 
+    private static final boolean USE_WEBCAM = true;  // Set true to use a webcam, or false for a phone camera
+    private static final int DESIRED_TAG_ID = -1;     // Choose the tag you want to approach or set to -1 for ANY tag.
+
     @Override
     public void runOpMode() {
 
         double  drive           = 0;        // Desired forward power/speed (-1 to +1)
         double  strafe          = 0;        // Desired strafe power/speed (-1 to +1)
         double  turn            = 0;        // Desired turning power/speed (-1 to +1)
-
-        // Initialize the hardware variables.
-        leftFrontDrive  = hardwareMap.get(DcMotor.class, "TopLeft");
-        rightFrontDrive = hardwareMap.get(DcMotor.class, "TopRight");
-        leftBackDrive  = hardwareMap.get(DcMotor.class, "BottomLeft");
-        rightBackDrive = hardwareMap.get(DcMotor.class, "BottomRight");
-
-
+        driveObject.init(hardwareMap);
         arm = hardwareMap.get(DcMotor.class, "arm");
         wrist = hardwareMap.get(DcMotor.class, "wrist");
         claw = hardwareMap.get(Servo.class, "claw");
@@ -91,15 +95,6 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
 
         arm.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
         wrist.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-        
-        // Set drive motor direction
-        // To drive forward, most robots need the motor on one side to be reversed, because the axles point in opposite directions.
-        // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
-        // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
-        leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
-        rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
 
         //Set zero power behavior
         wrist.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
@@ -222,18 +217,16 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             //DRIVE Split Arcade
             // drive using manual POV Joystick mode.  Slow things down to make the robot more controlable.
             drive  = -gamepad1.left_stick_y  / 2.0;  // Reduce drive rate to 50%.
-            strafe = -gamepad1.left_stick_x  / 2.0;  // Reduce strafe rate to 50%.
+            strafe =  -gamepad1.left_stick_x  / 2.0;  // Reduce strafe rate to 50%.
             turn   = -gamepad1.right_stick_x / 3.0;  // Reduce turn rate to 33%.
             telemetry.addData("Manual Drive","Drive %5.2f, Strafe %5.2f, Turn %5.2f ", drive, strafe, turn);
-            
+
             arm.setTargetPosition(targetArm);
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             arm.setPower(0.5);
-            sleep(10);
             wrist.setTargetPosition(targetWrist);
             wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             wrist.setPower(0.5);
-            sleep(10);
 
             // Send telemetry data to the driver station
             telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
@@ -244,34 +237,8 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             telemetry.update();
 
             // Apply desired axes motions to the drivetrain.
-            moveRobot(drive, strafe, turn);
-            sleep(10);
+            driveObject.moveRobot(drive, strafe, turn);
         }
-    }
-    public void moveRobot(double x, double y, double yaw) {
-        // Calculate wheel powers.
-        double leftFrontPower    =  x -y -yaw;
-        double rightFrontPower   =  x +y +yaw;
-        double leftBackPower     =  x +y -yaw;
-        double rightBackPower    =  x -y +yaw;
-
-        // Normalize wheel powers to be less than 1.0
-        double max = Math.max(Math.abs(leftFrontPower), Math.abs(rightFrontPower));
-        max = Math.max(max, Math.abs(leftBackPower));
-        max = Math.max(max, Math.abs(rightBackPower));
-
-        if (max > 1.0) {
-            leftFrontPower /= max;
-            rightFrontPower /= max;
-            leftBackPower /= max;
-            rightBackPower /= max;
-        }
-
-        // Send powers to the wheels.
-        leftFrontDrive.setPower(leftFrontPower);
-        rightFrontDrive.setPower(rightFrontPower);
-        leftBackDrive.setPower(leftBackPower);
-        rightBackDrive.setPower(rightBackPower);
     }
 }
 //SCAMMER DO NOT REDEEM THE CODE
