@@ -18,9 +18,8 @@ import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
 
 import java.util.concurrent.TimeUnit;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="StarterBot_V1_Java", group="Linear Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="StarterBot_OmniDrive", group="Linear Opmode")
 public class StarterBot2025TeleOpJava extends LinearOpMode {
-
     OmniDrive driveObject = new OmniDrive();
 
     // Declare OpMode members.
@@ -31,23 +30,23 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
 
 
     // Arm and Wrist target positions for each state
-    private static final int ARM_POSITION_INIT = 180;//300;
-    private static final int ARM_POSITION_INTAKE = 242;//450;
+    private static final int ARM_POSITION_INIT = 200;//300;
+    private static final int ARM_POSITION_INTAKE = 369;//450;
     private static final int ARM_POSITION_WALL_GRAB = 1100;//1100;
     private static final int ARM_POSITION_WALL_UNHOOK = 1700;//1700;
     private static final int ARM_POSITION_HOVER_HIGH = 2600;//2600;
-    private static final int ARM_POSITION_CLIP_HIGH = 2100;//2100;
+    private static final int ARM_POSITION_CLIP_HIGH = 2300;//2100;
     private static final int ARM_POSITION_LOW_BASKET = 2271;//2500;
     private static final int ARM_POSITION_HIGH_BASKET = 2500;
 
-    private static final int WRIST_POSITION_INIT = 0;
-    private static final int WRIST_POSITION_SAMPLE = 186;
+    private static final int WRIST_POSITION_INIT = 6;
+    private static final int WRIST_POSITION_SAMPLE = 230;
     private static final int WRIST_POSITION_SPEC = 30;
-    private static final int WRIST_POSITION_LOW_BSKT = 285;
-    private static final int WRIST_POSITION_HIGH_BSKT = 285;
+    private static final int WRIST_POSITION_LOW_BSKT = 260;
+    private static final int WRIST_POSITION_HIGH_BSKT = 260;
 
 
-    
+
     // Claw positions
     private static final double CLAW_OPEN_POSITION = 0.11;
     private static final double CLAW_CLOSED_POSITION = 0.28;
@@ -73,7 +72,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
     private boolean lastBump = false;
     private boolean lastHook = false;
     private boolean lastGrab = false;
-    
+
     //target position
     private int targetArm = 0;
     private int targetWrist = 0;
@@ -109,13 +108,12 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             // State machine logic
             switch (currentState) {
                 case INIT:
-                    targetArm = ARM_POSITION_INIT;
                     targetWrist = WRIST_POSITION_INIT;
+                    targetArm = ARM_POSITION_INIT;
                     telemetry.addData("State", "INIT");
                     break;
                 case INTAKE:
                     targetArm = ARM_POSITION_INTAKE;
-                    //targetWrist = WRIST_POSITION_INIT;
                     targetWrist = WRIST_POSITION_SAMPLE;
                     telemetry.addData("State", "INTAKE");
                     break;
@@ -137,7 +135,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                     targetWrist = WRIST_POSITION_SPEC;
                     telemetry.addData("State", "HOVER_HIGH");
                     break;
-                    
+
                 case CLIP_HIGH:
                     targetArm = ARM_POSITION_CLIP_HIGH;
                     targetWrist = WRIST_POSITION_SPEC;
@@ -167,30 +165,31 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
                 }else{
                     currentState = RobotState.WALL_GRAB;
                 }
+                /* USED to CLIP and UNCLIP  on HIGH BAR */
             } else if (gamepad1.y && !lastHook) {
                 if(currentState == RobotState.HOVER_HIGH){
                     currentState = RobotState.CLIP_HIGH;
                 }else{
                     currentState = RobotState.HOVER_HIGH;
                 }
-            } else if (gamepad1.x) { 
-                currentState = RobotState.LOW_BASKET;           
+            } else if (gamepad1.x) {
+                currentState = RobotState.LOW_BASKET;
             } else if (gamepad1.left_bumper) {
                 currentState = RobotState.INIT;
             } else if (gamepad1.dpad_up){ //manual control
                 currentState = RobotState.MANUAL;
-                targetArm += 10;
+                targetArm += 5;
             } else if (gamepad1.dpad_down){
                 currentState = RobotState.MANUAL;
-                targetArm -= 10;
+                targetArm -= 5;
             } else if (gamepad1.dpad_left){
-                currentState = RobotState.MANUAL;
-                targetWrist += 5;
+                //currentState = RobotState.MANUAL;
+                //targetWrist += 1;
             } else if (gamepad1.dpad_right){
-                currentState = RobotState.MANUAL;
-                targetWrist -= 5;
+                //currentState = RobotState.MANUAL;
+                //targetWrist -= 1;
             }
-            
+
             lastGrab = gamepad1.b;
             lastHook = gamepad1.y;
 
@@ -213,7 +212,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             } else {
                 intake.setPower(0);
             }
-            
+
             //DRIVE Split Arcade
             // drive using manual POV Joystick mode.  Slow things down to make the robot more controlable.
             drive  = -gamepad1.left_stick_y  / 2.0;  // Reduce drive rate to 50%.
@@ -221,12 +220,13 @@ public class StarterBot2025TeleOpJava extends LinearOpMode {
             turn   = -gamepad1.right_stick_x / 3.0;  // Reduce turn rate to 33%.
             telemetry.addData("Manual Drive","Drive %5.2f, Strafe %5.2f, Turn %5.2f ", drive, strafe, turn);
 
+
+            wrist.setTargetPosition(targetWrist);
+            wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+            wrist.setPower(0.3);
             arm.setTargetPosition(targetArm);
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
             arm.setPower(0.5);
-            wrist.setTargetPosition(targetWrist);
-            wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            wrist.setPower(0.5);
 
             // Send telemetry data to the driver station
             telemetry.addData("Claw Position", clawOpen ? "Open" : "Closed");
