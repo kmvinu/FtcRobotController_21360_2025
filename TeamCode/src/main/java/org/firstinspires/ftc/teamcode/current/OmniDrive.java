@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.current;
 
 import com.qualcomm.robotcore.hardware.DcMotor;
 
+
 public class OmniDrive {
 
     private DcMotor leftFrontDrive   = null;  //  Used to control the left front drive wheel
@@ -25,7 +26,7 @@ public class OmniDrive {
         // When run, this OpMode should start both motors driving forward. So adjust these two lines based on your first test drive.
         // Note: The settings here assume direct drive on left and right wheels.  Gear Reduction or 90 Deg drives may require direction flips
         leftFrontDrive.setDirection(DcMotor.Direction.FORWARD);
-        leftBackDrive.setDirection(DcMotor.Direction.REVERSE);
+        leftBackDrive.setDirection(DcMotor.Direction.FORWARD);
         rightFrontDrive.setDirection(DcMotor.Direction.REVERSE);
         rightBackDrive.setDirection(DcMotor.Direction.REVERSE);
 
@@ -58,5 +59,4 @@ public class OmniDrive {
         leftBackDrive.setPower(leftBackPower);
         rightBackDrive.setPower(rightBackPower);
     }
-
 }
