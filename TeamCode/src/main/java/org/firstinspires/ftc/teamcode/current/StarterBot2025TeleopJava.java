@@ -1,16 +1,13 @@
 package org.firstinspires.ftc.teamcode.current;
 
-import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.robot.RobotState;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.CRServo;
-import com.qualcomm.robotcore.robot.RobotState;
 
-@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="StarterBot_OmniDrive", group="Linear Opmode")
+@com.qualcomm.robotcore.eventloop.opmode.TeleOp(name="2025intoTheDeep", group="Linear Opmode")
 
-public class StarterBot2025TeleOpJava extends LinearOpMode{
+public class StarterBot2025TeleopJava extends LinearOpMode{
 
 
     OmniDrive driveObject = new OmniDrive();
@@ -24,7 +21,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
 
     // Arm and Wrist target positions for each state
     private static final int ARM_POSITION_INIT = 200;//300;
-    private static final int ARM_POSITION_INTAKE = 650;//450;
+    private static final int ARM_POSITION_INTAKE = 810;//450;
     private static final int ARM_POSITION_WALL_GRAB = 1100;//1100;
     private static final int ARM_POSITION_WALL_UNHOOK = 1700;//1700;
     private static final int ARM_POSITION_HOVER_HIGH = 2600;//2600;
@@ -61,7 +58,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
     private RobotState currentState = RobotState.INIT;
 
     // Claw toggle state
-    private boolean clawOpen = true;
+    private boolean clawOpen = false;
     private boolean lastBump = false;
     private boolean lastHook = false;
     private boolean lastGrab = false;
@@ -101,9 +98,9 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
             // State machine logic
             switch (currentState) {
                 case INIT:
-                    targetWrist = WRIST_POSITION_INIT;
+                    /*targetWrist = WRIST_POSITION_INIT;
                     targetArm = ARM_POSITION_INIT;
-                    telemetry.addData("State", "INIT");
+                    telemetry.addData("State", "INIT");*/
                     break;
                 case INTAKE:
                     targetArm = ARM_POSITION_INTAKE;
@@ -169,18 +166,18 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
                 currentState = RobotState.LOW_BASKET;
             } else if (gamepad1.left_bumper) {
                 currentState = RobotState.INIT;
-            } else if (gamepad1.dpad_up){ //manual control
+            } else if (gamepad1.dpad_up && arm.getCurrentPosition() < 2600){ //manual control
                 currentState = RobotState.MANUAL;
                 targetArm += 5;
             } else if (gamepad1.dpad_down){
                 currentState = RobotState.MANUAL;
                 targetArm -= 5;
             } else if (gamepad1.dpad_left && wrist.getCurrentPosition()< WRIST_POSITION_HIGH_BSKT ){
-                currentState = RobotState.MANUAL;
-                targetWrist += 1;
-            } else if (gamepad1.dpad_right && wrist.getCurrentPosition() > WRIST_POSITION_INIT){
-                currentState = RobotState.MANUAL;
-                targetWrist -= 1;
+                //currentState = RobotState.MANUAL;
+                //targetWrist += 1;
+            } else if (gamepad1.dpad_right && wrist.getCurrentPosition() > WRIST_POSITION_SPEC){
+                //currentState = RobotState.MANUAL;
+                //targetWrist -= 1;
             }
 
             lastGrab = gamepad1.b;
@@ -189,7 +186,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
             // Toggle claw position when right_bumper is pressed
             if (gamepad1.right_bumper && !lastBump) {
                 clawOpen = !clawOpen;
-                if (clawOpen) {
+                if (clawOpen && wrist.getCurrentPosition() < 40) {
                     claw.setPosition(CLAW_OPEN_POSITION);
                 } else {
                     claw.setPosition(CLAW_CLOSED_POSITION);
@@ -197,7 +194,7 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
             }
             lastBump = gamepad1.right_bumper;
 
-            // Control intake servo with triggerss
+            // Control intake servo with triggers
             if (gamepad1.right_trigger>0.1) {
                 intake.setPower(1.0);
             } else if (gamepad1.left_trigger>0.1) {
@@ -213,14 +210,11 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
             turn   = -gamepad1.right_stick_x / 2.0;  // Reduce turn rate to 33%.
             telemetry.addData("Manual Drive","Drive %5.2f, Strafe %5.2f, Turn %5.2f ", drive, strafe, turn);
 
-
-
-            wrist.setTargetPosition(targetWrist);
-            wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            wrist.setPower(0.3);
+            if (!clawOpen )
+                setWrist(targetWrist);
             arm.setTargetPosition(targetArm);
             arm.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-            arm.setPower(0.5);
+            arm.setPower(0.6);
 
 
             // Send telemetry data to the driver station
@@ -236,6 +230,11 @@ public class StarterBot2025TeleOpJava extends LinearOpMode{
             driveObject.moveRobot(drive, strafe, turn);
         }
     }
-}
-//SCAMMER DO NOT REDEEM THE CODE
 
+    public void setWrist(Integer targetWrist){
+        //claw.setPosition(CLAW_CLOSED_POSITION);
+        wrist.setTargetPosition(targetWrist);
+        wrist.setMode(DcMotor.RunMode.RUN_TO_POSITION);
+        wrist.setPower(0.4);
+    }
+}
